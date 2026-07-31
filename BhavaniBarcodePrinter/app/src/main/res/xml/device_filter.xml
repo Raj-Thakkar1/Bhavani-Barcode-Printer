@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Vendor ID 0x1203 (4611 decimal) = TSC Auto ID Technology Co., Ltd.
+  Product ID intentionally left unspecified so this matches any TSC printer model
+  (TE244, TDP-244, etc.) rather than locking to one PID.
+-->
+<resources>
+    <usb-device vendor-id="4611" />
+</resources>

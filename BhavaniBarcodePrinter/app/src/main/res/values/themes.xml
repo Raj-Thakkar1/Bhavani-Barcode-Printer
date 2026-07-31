@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.BhavaniBarcodePrinter" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#1a1a2e</item>
+        <item name="android:windowBackground">#1a1a2e</item>
+    </style>
+</resources>
