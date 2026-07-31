@@ -2,71 +2,71 @@ name: Build Debug APK
 
 on:
   push:
-      branches: [ main ]
-        workflow_dispatch: {}
+    branches: [ main ]
+  workflow_dispatch: {}
 
-        jobs:
-          build:
-              runs-on: ubuntu-latest
-                  env:
-                        ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-                              ANDROID_HOME: ${{ github.workspace }}/android-sdk
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
 
-                                  steps:
-                                        - name: Checkout
-                                                uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-                                                      # 1. JDK 17 (same as Colab)
-                                                            - name: Install JDK 17
-                                                                    run: sudo apt-get update -qq && sudo apt-get install -y -qq openjdk-17-jdk-headless
+      # 1. JDK 17 (same as Colab)
+      - name: Install JDK 17
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq openjdk-17-jdk-headless
 
-                                                                          - name: Set JAVA_HOME
-                                                                                  run: echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> "$GITHUB_ENV"
+      - name: Set JAVA_HOME
+        run: echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> "$GITHUB_ENV"
 
-                                                                                        # 2. Fresh SDK download (same commandline-tools zip as Colab)
-                                                                                              - name: Download Android commandline-tools
-                                                                                                      run: |
-                                                                                                                mkdir -p "$ANDROID_SDK_ROOT"
-                                                                                                                          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -O cmdline-tools.zip
-                                                                                                                                    file cmdline-tools.zip
-                                                                                                                                              rm -rf "$ANDROID_SDK_ROOT/cmdline-tools-temp" "$ANDROID_SDK_ROOT/cmdline-tools"
-                                                                                                                                                        unzip -q -o cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools-temp"
-                                                                                                                                                                  mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-                                                                                                                                                                            mv "$ANDROID_SDK_ROOT/cmdline-tools-temp/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
-                                                                                                                                                                                      rm -rf "$ANDROID_SDK_ROOT/cmdline-tools-temp" cmdline-tools.zip
+      # 2. Fresh SDK download (same commandline-tools zip as Colab)
+      - name: Download Android commandline-tools
+        run: |
+          mkdir -p "$ANDROID_SDK_ROOT"
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -O cmdline-tools.zip
+          file cmdline-tools.zip
+          rm -rf "$ANDROID_SDK_ROOT/cmdline-tools-temp" "$ANDROID_SDK_ROOT/cmdline-tools"
+          unzip -q -o cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools-temp"
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools-temp/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
+          rm -rf "$ANDROID_SDK_ROOT/cmdline-tools-temp" cmdline-tools.zip
 
-                                                                                                                                                                                            - name: Add SDK tools to PATH
-                                                                                                                                                                                                    run: |
-                                                                                                                                                                                                              echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-                                                                                                                                                                                                                        echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Add SDK tools to PATH
+        run: |
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
 
-                                                                                                                                                                                                                              - name: Check sdkmanager
-                                                                                                                                                                                                                                      run: sdkmanager --version
+      - name: Check sdkmanager
+        run: sdkmanager --version
 
-                                                                                                                                                                                                                                            # 3. Accept licenses + install exactly what's needed (matches build.gradle.kts: compileSdk 34)
-                                                                                                                                                                                                                                                  - name: Accept SDK licenses
-                                                                                                                                                                                                                                                          run: yes | sdkmanager --licenses > /dev/null
+      # 3. Accept licenses + install exactly what's needed (matches build.gradle.kts: compileSdk 34)
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null
 
-                                                                                                                                                                                                                                                                - name: Install SDK packages
-                                                                                                                                                                                                                                                                        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+      - name: Install SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
 
-                                                                                                                                                                                                                                                                              - name: Write local.properties
-                                                                                                                                                                                                                                                                                      run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+      - name: Write local.properties
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
-                                                                                                                                                                                                                                                                                            # 4. Build
-                                                                                                                                                                                                                                                                                                  - name: Make gradlew executable
-                                                                                                                                                                                                                                                                                                          run: chmod +x gradlew
+      # 4. Build
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
-                                                                                                                                                                                                                                                                                                                - name: Run static checks (kt_lint)
-                                                                                                                                                                                                                                                                                                                        run: python3 tools/kt_lint.py app/src/main/java
+      - name: Run static checks (kt_lint)
+        run: python3 tools/kt_lint.py app/src/main/java
 
-                                                                                                                                                                                                                                                                                                                              - name: Build debug APK
-                                                                                                                                                                                                                                                                                                                                      run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-                                                                                                                                                                                                                                                                                                                                            # 5. Hand back the APK as a downloadable artifact
-                                                                                                                                                                                                                                                                                                                                                  - name: Upload APK artifact
-                                                                                                                                                                                                                                                                                                                                                          uses: actions/upload-artifact@v4
-                                                                                                                                                                                                                                                                                                                                                                  with:
-                                                                                                                                                                                                                                                                                                                                                                            name: BhavaniBarcodePrinter-debug-apk
-                                                                                                                                                                                                                                                                                                                                                                                      path: app/build/outputs/apk/debug/*.apk
-                                                                                                                                                                                                                                                                                                                                                                                                if-no-files-found: error
+      # 5. Hand back the APK as a downloadable artifact
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BhavaniBarcodePrinter-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
